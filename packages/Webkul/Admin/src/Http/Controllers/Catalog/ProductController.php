@@ -90,8 +90,6 @@ class ProductController extends Controller
             'type'                => 'required',
             'attribute_family_id' => 'required',
             'sku'                 => ['required', 'unique:products,sku', new Slug],
-            'super_attributes'    => 'array|min:1',
-            'super_attributes.*'  => 'array|min:1',
         ]);
 
         if (
@@ -105,6 +103,13 @@ class ProductController extends Controller
                 'data' => [
                     'attributes' => AttributeResource::collection($configurableFamily->configurable_attributes),
                 ],
+            ]);
+        }
+
+        if (ProductType::hasVariants(request()->input('type'))) {
+            $this->validate(request(), [
+                'super_attributes'   => 'required|array|min:1',
+                'super_attributes.*' => 'array|min:1',
             ]);
         }
 
@@ -323,13 +328,7 @@ class ProductController extends Controller
      */
     public function search()
     {
-        $query = trim(request('query'));
-
-        if (empty($query)) {
-            return response()->json([
-                'data' => [],
-            ]);
-        }
+        $query = trim(request('query', ''));
 
         $searchEngine = 'database';
 
@@ -344,14 +343,18 @@ class ProductController extends Controller
             })->toArray();
         }
 
-        $channelId = $this->customerRepository->find(request('customer_id'))->channel_id ?? null;
+        $customer = request('customer_id') ? $this->customerRepository->find(request('customer_id')) : null;
+        $channelId = $customer?->channel_id ?? null;
 
         $params = [
             'index'      => $indexNames ?? null,
-            'name'       => request('query'),
+            'name'       => $query,
+            'query'      => $query,
             'sort'       => 'created_at',
             'order'      => 'desc',
             'channel_id' => $channelId,
+            'page'       => (int) request('page', 1),
+            'limit'      => (int) request('limit', request('per_page', 12)),
         ];
 
         if (request()->has('type')) {

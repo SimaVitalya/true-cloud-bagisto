@@ -2,16 +2,14 @@
 
 <div class="box-shadow relative rounded bg-white p-4 dark:bg-gray-900">
     <!-- Panel Header -->
-    <div class="mb-4 flex justify-between gap-5">
-        <div class="flex flex-col gap-2">
-            <p class="text-base font-semibold text-gray-800 dark:text-white">
-                @lang('admin::app.catalog.products.edit.images.title')
-            </p>
-
-            <p class="text-xs font-medium text-gray-500 dark:text-gray-300">
-                @lang('admin::app.catalog.products.edit.images.info')
-            </p>
-        </div>
+    <div class="mb-4 flex flex-col gap-2">
+        <p class="text-base font-semibold text-gray-800 dark:text-white">
+            @lang('admin::app.catalog.products.edit.images.title')
+        </p>
+        <p class="admin-hint">
+            <span class="admin-hint__icon" aria-hidden="true">ℹ</span>
+            @lang('admin::app.catalog.products.edit.images.info')
+        </p>
     </div>
 
     <!-- Image Blade Component -->

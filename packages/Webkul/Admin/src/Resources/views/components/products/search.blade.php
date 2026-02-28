@@ -8,7 +8,7 @@
         <!-- Search Drawer -->
         <x-admin::drawer
             ref="searchProductDrawer"
-            @close="searchTerm = ''; searchedProducts = [];"
+            @close="onDrawerClose"
         >
             <!-- Drawer Header -->
             <x-slot:header>
@@ -26,13 +26,17 @@
                         </div>
                     </div>
 
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        @lang('admin::app.components.products.search.search-hint')
+                    </p>
+
                     <div class="relative w-full">
                         <input
                             type="text"
-                            class="block w-full rounded-lg border bg-white py-1.5 leading-6 text-gray-600 transition-all hover:border-gray-400 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 ltr:pl-3 ltr:pr-10 rtl:pl-10 rtl:pr-3"
-                            placeholder="Search by name"
-                            v-model.lazy="searchTerm"
-                            v-debounce="500"
+                            class="block w-full rounded-lg border bg-white py-2 leading-6 text-gray-600 transition-all hover:border-gray-400 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 ltr:pl-3 ltr:pr-10 rtl:pl-10 rtl:pr-3"
+                            placeholder="{{ trans('admin::app.components.products.search.search-placeholder') }}"
+                            v-model="searchTerm"
+                            v-debounce="320"
                         />
 
                         <template v-if="isSearching">
@@ -58,6 +62,7 @@
                     <div
                         class="flex justify-between gap-2.5 border-b border-slate-300 px-4 py-6 dark:border-gray-800"
                         v-for="product in filteredSearchedProducts"
+                        :key="product.id"
                     >
                         <!-- Information -->
                         <div class="flex gap-2.5">
@@ -120,10 +125,44 @@
                     </div>
                 </div>
 
+                <!-- Pagination -->
+                <div
+                    v-if="pagination.lastPage > 1"
+                    class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-300 px-4 py-3 dark:border-gray-800"
+                >
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        @lang('admin::app.components.products.search.pagination-showing'):
+                        @{{ pagination.from }} – @{{ pagination.to }}
+                        @lang('admin::app.components.products.search.pagination-of')
+                        @{{ pagination.total }}
+                    </p>
+                    <div class="flex gap-1">
+                        <button
+                            type="button"
+                            class="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                            :disabled="pagination.currentPage <= 1"
+                            @click="goToPage(pagination.currentPage - 1)"
+                        >
+                            ←
+                        </button>
+                        <span class="flex items-center px-2 text-sm text-gray-600 dark:text-gray-400">
+                            @{{ pagination.currentPage }} / @{{ pagination.lastPage }}
+                        </span>
+                        <button
+                            type="button"
+                            class="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                            :disabled="pagination.currentPage >= pagination.lastPage"
+                            @click="goToPage(pagination.currentPage + 1)"
+                        >
+                            →
+                        </button>
+                    </div>
+                </div>
+
                 <!-- For Empty Variations -->
                 <div
                     class="grid justify-center justify-items-center gap-3.5 px-2.5 py-10"
-                    v-else
+                    v-else-if="!isSearching"
                 >
                     <!-- Placeholder Image -->
                     <img
@@ -137,7 +176,7 @@
                             @lang('admin::app.components.products.search.empty-title')
                         </p>
 
-                        <p class="text-gray-400">
+                        <p class="text-center text-gray-400 max-w-md">
                             @lang('admin::app.components.products.search.empty-info')
                         </p>
                     </div>
@@ -169,6 +208,17 @@
                     searchedProducts: [],
 
                     isSearching: false,
+
+                    searchDebounceTimer: null,
+
+                    pagination: {
+                        currentPage: 1,
+                        lastPage: 1,
+                        total: 0,
+                        perPage: 12,
+                        from: 0,
+                        to: 0,
+                    },
                 }
             },
 
@@ -179,40 +229,71 @@
             },
 
             watch: {
-                searchTerm: function(newVal, oldVal) {
-                    this.search();
+                searchTerm: function() {
+                    let self = this;
+                    if (this.searchDebounceTimer) {
+                        clearTimeout(this.searchDebounceTimer);
+                    }
+                    this.searchDebounceTimer = setTimeout(function() {
+                        self.search(1);
+                    }, 320);
                 }
             },
 
             methods: {
-                openDrawer() {
-                    this.$refs.searchProductDrawer.open();
+                onDrawerClose() {
+                    this.searchTerm = '';
+                    this.searchedProducts = [];
+                    this.pagination = { currentPage: 1, lastPage: 1, total: 0, perPage: 12, from: 0, to: 0 };
+                    if (this.searchDebounceTimer) {
+                        clearTimeout(this.searchDebounceTimer);
+                        this.searchDebounceTimer = null;
+                    }
                 },
 
-                search() {
-                    if (this.searchTerm.length <= 1) {
-                        this.searchedProducts = [];
+                openDrawer() {
+                    this.$refs.searchProductDrawer.open();
+                    this.searchTerm = '';
+                    this.search(1);
+                },
 
-                        return;
-                    }
+                search(page) {
+                    page = page || 1;
 
                     this.isSearching = true;
 
                     let self = this;
-                    
+
                     this.$axios.get("{{ route('admin.catalog.products.search') }}", {
                             params: {
-                                ...{query: this.searchTerm},
+                                query: this.searchTerm,
+                                page: page,
+                                limit: 12,
                                 ...this.queryParams
                             }
                         })
                         .then(function(response) {
                             self.isSearching = false;
-
-                            self.searchedProducts = response.data.data;
+                            self.searchedProducts = response.data.data || [];
+                            let meta = response.data.meta || response.meta || {};
+                            self.pagination = {
+                                currentPage: meta.current_page || 1,
+                                lastPage: meta.last_page || 1,
+                                total: meta.total || 0,
+                                perPage: meta.per_page || 12,
+                                from: meta.from || 0,
+                                to: meta.to || 0,
+                            };
                         })
-                        .catch(function (error) {
+                        .catch(function () {
+                            self.isSearching = false;
+                            self.searchedProducts = [];
                         });
+                },
+
+                goToPage(page) {
+                    if (page < 1 || page > this.pagination.lastPage) return;
+                    this.search(page);
                 },
 
                 addSelected() {

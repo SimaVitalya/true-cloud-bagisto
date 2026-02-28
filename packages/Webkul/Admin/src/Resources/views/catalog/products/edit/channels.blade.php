@@ -7,18 +7,22 @@
         <!-- Panel -->
         <div class="box-shadow rounded bg-white p-4 dark:bg-gray-900">
             <!-- Panel Header -->
-            <p class="mb-4 flex justify-between text-base font-semibold text-gray-800 dark:text-white">
+            <p class="mb-1 text-base font-semibold text-gray-800 dark:text-white">
                 @lang('admin::app.catalog.products.edit.channels.title')
+            </p>
+            <p class="admin-hint mb-4">
+                <span class="admin-hint__icon" aria-hidden="true">ℹ</span>
+                @lang('admin::app.catalog.products.edit.channels.hint')
             </p>
 
             {!! view_render_event('bagisto.admin.catalog.product.edit.form.channels.controls.before', ['product' => $product]) !!}
 
             <!-- Panel Content -->
-            <div class="text-sm text-gray-600 dark:text-gray-300">
+            <div class="product-channels-list text-sm text-gray-600 dark:text-gray-300">
                 @php $selectedChannelsId = old('channels') ?? $product->channels->pluck('id')->toArray() @endphp
                 
                 @foreach (core()->getAllChannels() as $channel)
-                    <x-admin::form.control-group class="!mb-2 flex items-center gap-2.5 last:!mb-0">
+                    <x-admin::form.control-group class="!mb-2 flex items-center gap-2.5 last:!mb-0 product-channel-item">
                         <x-admin::form.control-group.control
                             type="checkbox"
                             :id="'channels_' . $channel->id" 

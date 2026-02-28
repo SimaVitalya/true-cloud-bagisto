@@ -795,10 +795,13 @@ return [
                     'configurable-attributes' => 'Configurable Attributes',
                     'create-btn'              => 'Create Product',
                     'family'                  => 'Family',
+                    'family-hint'             => 'Set of fields for this product. Use "Default" if unsure.',
                     'save-btn'                => 'Save Product',
                     'sku'                     => 'SKU',
+                    'sku-placeholder'         => 'e.g. my-product-001',
                     'title'                   => 'Create New Product',
                     'type'                    => 'Type',
+                    'type-hint'               => '*Simple* — one product, one SKU (e.g. a single T-shirt). *Configurable* — one product with variants: customer chooses size, color, etc. (e.g. T-shirt in S/M/L and Red/Blue). *Grouped* — several products in one listing; customer picks quantity for each. *Booking* — appointments, events or rental (e.g. class, hotel room).',
                 ],
 
                 'datagrid' => [
@@ -836,8 +839,17 @@ return [
                 'save-btn' => 'Save Product',
                 'title'    => 'Edit Product',
 
+                'steps' => [
+                    'basic'  => 'Basics',
+                    'price'  => 'Price & Stock',
+                    'media'  => 'Media & SEO',
+                    'more'   => 'More',
+                    'go-to'  => 'Go to',
+                ],
+
                 'channels' => [
                     'title' => 'Channels',
+                    'hint'  => 'Select the store channels where this product will be visible.',
                 ],
 
                 'price' => [
@@ -875,7 +887,43 @@ return [
 
                 'categories' => [
                     'title' => 'Categories',
+                    'hint'  => 'Categories are sections of your catalog: e.g. Gifts, Clothing, Electronics, Accessories. Select one or more categories where this product should appear. Customers will find it when browsing these sections.',
                 ],
+
+                'attribute-hints' => [
+                    'new'                   => 'Show a «New» badge on the product. Usually enabled for recently added items.',
+                    'featured'              => 'Featured products can be shown on the homepage or in special blocks.',
+                    'visible_individually'  => 'If enabled, the product has its own page and can be opened by direct link. Disable for variants that are only shown inside a configurable product.',
+                    'status'                => 'Enabled: product is visible in the store. Disabled: hidden from customers.',
+                    'meta_title'            => 'Title for search engines and browser tab. Short phrase with the product name and key benefit (e.g. «Blue Winter Jacket – Men’s Coat»).',
+                    'meta_description'     => 'Short text that search engines show under the link in results. Describe the product in 1–2 sentences, 120–160 characters recommended. Do not duplicate the full description.',
+                    'url_key'               => 'Product page URL slug. Only Latin letters, numbers and hyphens (e.g. blue-winter-jacket). Leave empty to generate from the product name.',
+                    'sku'                   => 'SKU (Stock Keeping Unit) is a unique code for the product (e.g. JKT-001). Used for inventory, orders and search. Must be unique across the store.',
+                    'product_number'        => 'Internal or manufacturer product number. Optional identifier in addition to SKU (e.g. model or style number).',
+                    'size'                  => 'Size of the product (e.g. S, M, L for clothing, or 42 for shoes). Used for variants and filters.',
+                    'color'                 => 'Color of the product variant. Shown in the store for customers to choose (e.g. Red, Blue).',
+                    'brand'                 => 'Brand is the manufacturer or trade name of the product (e.g. Samsung, Nike). Used for catalog filters and customer trust.',
+                    'price'                 => 'Selling price shown to customers. Enter the main product price in the store currency.',
+                    'cost'                  => 'Your cost or purchase price for this product. Used for margin reports; not shown to customers.',
+                    'special_price'        => 'Discounted price (e.g. sale). If set, customers see this instead of the regular price during the period you specify.',
+                    'special_price_from'   => 'Start date of the special price. Leave empty if the discount has no start limit.',
+                    'special_price_to'     => 'End date of the special price. Leave empty if the discount has no end limit.',
+                    'length'               => 'Product length for shipping and display. Use one unit consistently (e.g. cm).',
+                    'width'                => 'Product width for shipping and display. Use one unit consistently (e.g. cm).',
+                    'height'               => 'Product height for shipping and display. Use one unit consistently (e.g. cm).',
+                    'weight'               => 'Product weight for shipping calculation. Use one unit consistently (e.g. kg).',
+                    'manage_stock'         => 'If enabled, you can set and track quantity per inventory source. If disabled, the product is always considered in stock.',
+                    'short_description'    => 'Brief summary (1–3 sentences) shown on product cards, category pages and search results. Helps customers quickly understand what the product is.',
+                    'description'          => 'Full product description shown on the product page. Can be long, with formatting and images. «Short description» above is for cards and listings; this one is for the main product view.',
+                ],
+
+                'meta-group-hint' => 'These fields help search engines (Google, etc.) and social networks show your product correctly. Meta title and description are shown in search results and when sharing the link.',
+
+                'settings-group-hint' => 'Visibility and display options: whether the product is active, shown as new, featured, or has its own page.',
+
+                'price-group-hint' => 'Main price is what customers pay. Special price is a temporary discount (set dates to limit the period). «Customer group prices» let you set different prices or discounts by customer group (e.g. wholesale) or by quantity.',
+                'shipping-group-hint' => 'Dimensions and weight are used to calculate shipping costs and to show product details. Length, width and height in one unit (e.g. cm), weight in one unit (e.g. kg).',
+                'inventories-group-hint' => '«Pending ordered qty» is the quantity already in orders but not yet shipped; it is reserved. Set available quantity per inventory source (e.g. main warehouse). «Manage stock» in Settings controls whether this block is used.',
 
                 'images' => [
                     'info'  => 'Image resolution should be like 560px X 609px',
@@ -4844,13 +4892,17 @@ return [
 
         'products' => [
             'search' => [
-                'add-btn'       => 'Add Selected Product',
-                'empty-info'    => 'No products available for search term.',
-                'empty-title'   => 'No products found',
-                'product-image' => 'Product Image',
-                'qty'           => ':qty Available',
-                'sku'           => 'SKU - :sku',
-                'title'         => 'Select Products',
+                'add-btn'            => 'Add Selected Product',
+                'empty-info'         => 'Type in the search field above to find products by name or SKU. Select the ones you need and click «Add Selected Product».',
+                'empty-title'        => 'No products found',
+                'product-image'      => 'Product Image',
+                'qty'                => ':qty Available',
+                'sku'                => 'SKU - :sku',
+                'title'              => 'Select Products',
+                'search-placeholder' => 'Search by product name or SKU...',
+                'search-hint'        => 'Find products above, select them, then click the button to add.',
+                'pagination-showing' => 'Showing',
+                'pagination-of'      => 'of',
             ],
         ],
 

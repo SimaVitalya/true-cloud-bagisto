@@ -431,11 +431,11 @@
 
                             <!-- Modal Content -->
                             <x-slot:content>
-                                <div v-show="! attributes.length">
+                                <div v-show="! attributes.length" class="product-create-modal__body">
                                     {!! view_render_event('bagisto.admin.catalog.products.create_form.general.controls.before') !!}
 
                                     <!-- Product Type -->
-                                    <x-admin::form.control-group>
+                                    <x-admin::form.control-group class="product-create-field product-create-field--type">
                                         <x-admin::form.control-group.label class="required">
                                             @lang('admin::app.catalog.products.index.create.type')
                                         </x-admin::form.control-group.label>
@@ -446,18 +446,28 @@
                                             rules="required"
                                             :label="trans('admin::app.catalog.products.index.create.type')"
                                         >
-                                            @foreach(config('product_types') as $key => $type)
+                                            @foreach(collect(config('product_types'))->except(['virtual', 'downloadable', 'bundle']) as $key => $type)
                                                 <option value="{{ $key }}">
                                                     @lang($type['name'])
                                                 </option>
                                             @endforeach
                                         </x-admin::form.control-group.control>
 
+                                        <p class="product-create-hint">
+                                            <span class="product-create-hint__icon" aria-hidden="true">ℹ</span>
+                                            <span class="product-create-hint__text">
+                                            @php
+                                                $typeHint = __('admin::app.catalog.products.index.create.type-hint');
+                                                $typeHint = preg_replace('/\*([^*]+)\*/', '<span class="product-create-type-name">$1</span>', $typeHint);
+                                            @endphp
+                                            {!! $typeHint !!}
+                                            </span>
+                                        </p>
                                         <x-admin::form.control-group.error control-name="type" />
                                     </x-admin::form.control-group>
 
                                     <!-- Attribute Family Id -->
-                                    <x-admin::form.control-group>
+                                    <x-admin::form.control-group class="product-create-field product-create-field--family">
                                         <x-admin::form.control-group.label class="required">
                                             @lang('admin::app.catalog.products.index.create.family')
                                         </x-admin::form.control-group.label>
@@ -475,11 +485,15 @@
                                             @endforeach
                                         </x-admin::form.control-group.control>
 
+                                        <p class="product-create-hint">
+                                            <span class="product-create-hint__icon" aria-hidden="true">ℹ</span>
+                                            <span class="product-create-hint__text">@lang('admin::app.catalog.products.index.create.family-hint')</span>
+                                        </p>
                                         <x-admin::form.control-group.error control-name="attribute_family_id" />
                                     </x-admin::form.control-group>
 
                                     <!-- SKU -->
-                                    <x-admin::form.control-group>
+                                    <x-admin::form.control-group class="product-create-field">
                                         <x-admin::form.control-group.label class="required">
                                             @lang('admin::app.catalog.products.index.create.sku')
                                         </x-admin::form.control-group.label>
@@ -489,6 +503,7 @@
                                             name="sku"
                                             ::rules="{ required: true, regex: /^[a-zA-Z0-9]+(?:-[a-zA-Z0-9]+)*$/ }"
                                             :label="trans('admin::app.catalog.products.index.create.sku')"
+                                            :placeholder="trans('admin::app.catalog.products.index.create.sku-placeholder')"
                                         />
 
                                         <x-admin::form.control-group.error control-name="sku" />
@@ -544,7 +559,7 @@
 
                                     <!-- Save Button -->
                                     <x-admin::button
-                                        button-type="button"
+                                        type="submit"
                                         class="primary-button"
                                         :title="trans('admin::app.catalog.products.index.create.save-btn')"
                                         ::loading="isLoading"
@@ -627,5 +642,102 @@
                 }
             })
         </script>
+    @endPushOnce
+
+    @pushOnce('styles')
+    <style>
+    /* Product create modal: clear, friendly UI (pure CSS) */
+    .product-create-modal__body {
+        padding: 0.25rem 0;
+        width: 100%;
+        max-width: 100%;
+        columns: 1;
+    }
+    .product-create-field { margin-bottom: 1.25rem; }
+    .product-create-field:last-child { margin-bottom: 0; }
+    .product-create-hint {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8125rem;
+        line-height: 1.4;
+        color: #475569;
+        background: #f0f9ff;
+        border: 1px solid #bae6fd;
+        border-radius: 8px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        columns: 1;
+        box-sizing: border-box;
+    }
+    .product-create-hint > span:last-child,
+    .product-create-hint .product-create-type-name {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+    .product-create-hint__text {
+        flex: 1 1 auto;
+        min-width: 0;
+        columns: 1;
+    }
+    html.dark .product-create-hint {
+        color: #94a3b8;
+        background: rgba(30, 58, 138, 0.25);
+        border-color: #334155;
+    }
+    .product-create-hint__icon {
+        flex-shrink: 0;
+        flex-grow: 0;
+        flex-basis: 18px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        min-width: 18px;
+        height: 18px;
+        min-height: 18px;
+        border-radius: 50%;
+        background: #0ea5e9;
+        color: #fff;
+        font-size: 0.7rem;
+        font-weight: 700;
+        line-height: 1;
+        box-sizing: border-box;
+    }
+    html.dark .product-create-hint__icon { background: #3b82f6; }
+
+    /* Type & Family dropdowns: bolder, distinct color for easier scanning */
+    .product-create-field--type select,
+    .product-create-field--family select {
+        font-weight: 600;
+        color: #1e40af;
+    }
+    .product-create-field--type select option,
+    .product-create-field--family select option {
+        font-weight: 600;
+        color: #1e3a8a;
+    }
+    html.dark .product-create-field--type select,
+    html.dark .product-create-field--family select {
+        color: #93c5fd;
+    }
+    html.dark .product-create-field--type select option,
+    html.dark .product-create-field--family select option {
+        color: #e2e8f0;
+        background: #1e293b;
+    }
+
+    /* Type names in hint: bold + color for quick scanning */
+    .product-create-type-name {
+        font-weight: 700;
+        color: #1e40af;
+    }
+    html.dark .product-create-type-name {
+        color: #93c5fd;
+    }
+    </style>
     @endPushOnce
 </x-admin::layouts>

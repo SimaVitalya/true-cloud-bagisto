@@ -118,8 +118,18 @@
                             @lang('admin::app.catalog.products.edit.links.empty-title')
                         </p>
 
-                        <p class="text-gray-400">
+                        <p class="text-center text-gray-400 max-w-sm">
                             @{{ type.empty_info }}
+                        </p>
+
+                        <div
+                            class="primary-button mt-3"
+                            @click="selectedType = type.key; $refs.productSearch.openDrawer()"
+                        >
+                            @lang('admin::app.catalog.products.edit.links.add-btn')
+                        </div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            @lang('admin::app.components.products.search.search-hint')
                         </p>
                     </div>
                 </div>
