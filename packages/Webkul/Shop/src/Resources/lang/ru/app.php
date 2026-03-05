@@ -1303,6 +1303,7 @@ return [
         'orders' => [
             'created' => [
                 'greeting' => 'Спасибо за ваш заказ #:order_id, размещенный :created_at',
+                'greeting-customer' => 'Спасибо за ваш заказ, размещенный :created_at',
                 'subject'  => 'Подтверждение нового заказа',
                 'summary'  => 'Сводка заказа',
                 'title'    => 'Подтверждение заказа!',

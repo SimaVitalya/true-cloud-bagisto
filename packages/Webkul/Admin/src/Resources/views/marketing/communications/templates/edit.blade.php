@@ -3,6 +3,8 @@
         @lang('admin::app.marketing.communications.templates.edit.title')
     </x-slot>
 
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
     {!! view_render_event('bagisto.admin.marketing.communications.templates.edit.before', ['template' => $template]) !!}
     <!-- Input Form -->
     <x-admin::form
@@ -140,7 +142,6 @@
                 </div>
 
                 {!! view_render_event('bagisto.admin.marketing.communications.templates.edit.card.accordion.general.after', ['template' => $template]) !!}
-
             </div>
         </div>
 
@@ -149,5 +150,4 @@
     </x-admin::form>
 
     {!! view_render_event('bagisto.admin.marketing.communications.templates.edit.after', ['template' => $template]) !!}
-
 </x-admin::layouts>

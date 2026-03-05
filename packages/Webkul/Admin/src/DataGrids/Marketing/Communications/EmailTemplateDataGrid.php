@@ -102,6 +102,17 @@ class EmailTemplateDataGrid extends DataGrid
             ]);
         }
 
+        if (bouncer()->hasPermission('marketing.communications.email_templates.edit')) {
+            $this->addAction([
+                'icon'   => 'icon-mail',
+                'title'  => trans('admin::app.marketing.communications.templates.index.datagrid.send'),
+                'method' => 'GET',
+                'url'    => function ($row) {
+                    return route('admin.marketing.communications.email_templates.edit', $row->id) . '#send-email';
+                },
+            ]);
+        }
+
         if (bouncer()->hasPermission('marketing.communications.email_templates.delete')) {
             $this->addAction([
                 'icon'   => 'icon-delete',

@@ -38,7 +38,7 @@ class Base
         app()->setLocale($customerLocale);
 
         try {
-            Mail::queue($notification);
+            Mail::send($notification);
         } catch (\Exception $e) {
             \Log::error('Error in Sending Email'.$e->getMessage());
         }

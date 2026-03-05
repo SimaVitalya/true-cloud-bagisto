@@ -4978,3 +4978,113 @@ it('should place order with two products with simple and downloadable product ty
         ],
     ]);
 });
+
+it('order confirmation emails contain admin-panel-like content for admin and customer', function () {
+    Mail::fake();
+
+    $product = (new ProductFaker([
+        'attributes' => [
+            5  => 'new',
+            26 => 'guest_checkout',
+        ],
+        'attribute_value' => [
+            'new' => ['boolean_value' => true],
+            'guest_checkout' => ['boolean_value' => true],
+        ],
+    ]))
+        ->getSimpleProductFactory()
+        ->create();
+
+    $cart = Cart::factory()->create(['shipping_method' => 'free_free']);
+    $additional = [
+        'product_id' => $product->id,
+        'rating'     => '0',
+        'is_buy_now' => '0',
+        'quantity'   => '2',
+    ];
+    CartItem::factory()->create([
+        'cart_id'             => $cart->id,
+        'product_id'          => $product->id,
+        'sku'                 => $product->sku,
+        'quantity'            => $additional['quantity'],
+        'name'                => $product->name,
+        'price'               => $convertedPrice = core()->convertPrice($price = $product->price),
+        'price_incl_tax'      => $convertedPrice,
+        'base_price'          => $price,
+        'base_price_incl_tax' => $price,
+        'total'               => $convertedPrice * $additional['quantity'],
+        'total_incl_tax'      => $convertedPrice * $additional['quantity'],
+        'base_total'          => $price * $additional['quantity'],
+        'weight'              => $product->weight ?? 0,
+        'total_weight'        => ($product->weight ?? 0) * $additional['quantity'],
+        'base_total_weight'   => ($product->weight ?? 0) * $additional['quantity'],
+        'type'                => $product->type,
+        'additional'          => $additional,
+    ]);
+    CartAddress::factory()->create([
+        'cart_id'      => $cart->id,
+        'address_type' => CartAddress::ADDRESS_TYPE_BILLING,
+    ]);
+    $cartShippingAddress = CartAddress::factory()->create([
+        'cart_id'      => $cart->id,
+        'address_type' => CartAddress::ADDRESS_TYPE_SHIPPING,
+    ]);
+    CartPayment::factory()->create([
+        'method'       => 'cashondelivery',
+        'method_title' => core()->getConfigData('sales.payment_methods.cashondelivery.title'),
+        'cart_id'      => $cart->id,
+    ]);
+    CartShippingRate::factory()->create([
+        'carrier'            => 'free',
+        'carrier_title'      => 'Free',
+        'method'             => 'free_free',
+        'method_title'       => 'Free Shipping',
+        'method_description'=> 'Free',
+        'cart_address_id'    => $cartShippingAddress->id,
+        'cart_id'            => $cart->id,
+    ]);
+    cart()->setCart($cart);
+    cart()->collectTotals();
+
+    postJson(route('shop.checkout.onepage.orders.store'))
+        ->assertOk()
+        ->assertJsonPath('data.redirect', true);
+
+    Mail::assertQueued(AdminOrderCreatedNotification::class);
+    Mail::assertQueued(ShopOrderCreatedNotification::class);
+    Mail::assertQueuedCount(2);
+
+    $adminMail = null;
+    $shopMail = null;
+    Mail::assertQueued(AdminOrderCreatedNotification::class, function ($mail) use (&$adminMail) {
+        $adminMail = $mail;
+        return true;
+    });
+    Mail::assertQueued(ShopOrderCreatedNotification::class, function ($mail) use (&$shopMail) {
+        $shopMail = $mail;
+        return true;
+    });
+
+    $adminHtml = $adminMail->render();
+    $shopHtml = $shopMail->render();
+
+    expect($adminHtml)
+        ->toContain('Grand Total')
+        ->toContain('Payment')
+        ->toContain('SKU')
+        ->toContain('Image')
+        ->toContain('Total')
+        ->toContain($product->name)
+        ->toContain($product->sku)
+        ->toContain('2');
+
+    expect($shopHtml)
+        ->toContain('Grand Total')
+        ->toContain('Payment')
+        ->toContain('SKU')
+        ->toContain('Image')
+        ->toContain('Total')
+        ->toContain($product->name)
+        ->toContain($product->sku)
+        ->toContain('2');
+});

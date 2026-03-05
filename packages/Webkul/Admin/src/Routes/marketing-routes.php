@@ -90,6 +90,8 @@ Route::prefix('marketing')->group(function () {
 
             Route::put('edit/{id}', 'update')->name('admin.marketing.communications.email_templates.update');
 
+            Route::post('send/{id}', 'send')->name('admin.marketing.communications.email_templates.send');
+
             Route::delete('edit/{id}', 'destroy')->name('admin.marketing.communications.email_templates.delete');
         });
 
@@ -147,6 +149,8 @@ Route::prefix('marketing')->group(function () {
             Route::post('send', 'send')->name('admin.marketing.communications.email-broadcast.send');
 
             Route::get('group-count/{groupId}', 'getGroupCustomerCount')->name('admin.marketing.communications.email-broadcast.group-count');
+
+            Route::get('template/{id}', 'getTemplate')->name('admin.marketing.communications.email-broadcast.template');
         });
     });
 

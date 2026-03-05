@@ -264,12 +264,13 @@
 
                             let config = {  
                                 relative_urls: false,
-                                menubar: false,
                                 remove_script_host: false,
+                                convert_urls: false,
                                 document_base_url: '{{ asset('/') }}',
                                 uploadRoute: '{{ route('admin.tinymce.upload') }}',
                                 csrfToken: '{{ csrf_token() }}',
                                 ...extraConfiguration,
+                                menubar: false,
                                 skin: self.currentSkin,
                                 content_css: self.currentContentCSS,
                             };

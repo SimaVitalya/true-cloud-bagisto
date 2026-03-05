@@ -5,6 +5,9 @@ namespace Webkul\Marketing\Providers;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\ServiceProvider;
 use Webkul\Marketing\Console\Commands\EmailsCommand;
+use Webkul\Marketing\Console\Commands\EmailBroadcastTestCommand;
+use Webkul\Marketing\Console\Commands\EmailBroadcastTestGroupsCommand;
+use Webkul\Marketing\Console\Commands\SeedBroadcastTestCustomersCommand;
 
 class MarketingServiceProvider extends ServiceProvider
 {
@@ -16,7 +19,7 @@ class MarketingServiceProvider extends ServiceProvider
     public function register()
     {
         if ($this->app->runningInConsole()) {
-            $this->commands([EmailsCommand::class]);
+            $this->commands([EmailsCommand::class, EmailBroadcastTestCommand::class, EmailBroadcastTestGroupsCommand::class, SeedBroadcastTestCustomersCommand::class]);
         }
     }
 

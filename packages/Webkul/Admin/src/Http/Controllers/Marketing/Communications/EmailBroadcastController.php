@@ -7,10 +7,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Cache;
 use Webkul\Admin\Http\Controllers\Controller;
 use Webkul\Admin\Mail\EmailBroadcastNotification;
 use Webkul\Customer\Repositories\CustomerGroupRepository;
 use Webkul\Customer\Repositories\CustomerRepository;
+use Webkul\Marketing\Repositories\TemplateRepository;
 
 class EmailBroadcastController extends Controller
 {
@@ -22,6 +24,7 @@ class EmailBroadcastController extends Controller
     public function __construct(
         protected CustomerRepository $customerRepository,
         protected CustomerGroupRepository $customerGroupRepository,
+        protected TemplateRepository $templateRepository,
     ) {}
 
     /**
@@ -32,8 +35,38 @@ class EmailBroadcastController extends Controller
     public function index()
     {
         $customerGroups = $this->customerGroupRepository->all();
+        $emailTemplates = $this->templateRepository->findWhere(['status' => 'active'])->sortBy('name')->values();
+        $lastSentAt = Cache::get('email_broadcast_last_sent_at');
 
-        return view('admin::marketing.communications.email-broadcast.index', compact('customerGroups'));
+        // Make image URLs in template content absolute so they display in the broadcast editor
+        $emailTemplates = $emailTemplates->map(function ($t) {
+            $t->content = $this->makeContentImageUrlsAbsolute($t->content ?? '');
+            return $t;
+        });
+
+        return view('admin::marketing.communications.email-broadcast.index', compact('customerGroups', 'emailTemplates', 'lastSentAt'));
+    }
+
+    /**
+     * Make image src URLs in HTML absolute and use /files/tinymce/ so images load without symlink.
+     */
+    private function makeContentImageUrlsAbsolute(string $html): string
+    {
+        $html = preg_replace('#(https?://[^\x22\x27]+)/storage/tinymce/#', '$1/files/tinymce/', $html);
+        $html = str_replace(['/storage/tinymce/', 'storage/tinymce/'], ['/files/tinymce/', 'files/tinymce/'], $html);
+        $baseUrl = rtrim(config('app.url'), '/');
+        return preg_replace_callback(
+            '#<img([^>]*)\s+src=([\x22\x27])([^\x22\x27]+)\2#',
+            function (array $m) use ($baseUrl): string {
+                $url = $m[3];
+                if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
+                    return $m[0];
+                }
+                $path = ltrim($url, '/');
+                return '<img' . $m[1] . ' src=' . $m[2] . ($baseUrl . '/' . $path) . $m[2];
+            },
+            $html
+        );
     }
 
     /**
@@ -43,6 +76,10 @@ class EmailBroadcastController extends Controller
      */
     public function send(Request $request): JsonResponse
     {
+        @set_time_limit(0);
+        if (function_exists('ini_set')) {
+            @ini_set('max_execution_time', '0');
+        }
         \Log::info('Email broadcast request received', $request->all());
         
         $validator = Validator::make($request->all(), [
@@ -71,21 +108,60 @@ class EmailBroadcastController extends Controller
                 ], 400);
             }
 
+            // Уникальные и валидные email, пропуск пустых и невалидных
+            $seen = [];
+            $recipients = array_values(array_filter($recipients, function ($r) use (&$seen) {
+                $email = trim($r['email'] ?? '');
+                if ($email === '' || ! filter_var($email, FILTER_VALIDATE_EMAIL) || isset($seen[$email])) {
+                    return false;
+                }
+                $seen[$email] = true;
+                return true;
+            }));
+
+            // Keep HTML from TinyMCE as-is (images/formatting); convert line breaks only for plain text input.
+            $content = trim((string) $request->input('content', ''));
+            if ($content !== '' && ! preg_match('/<[^>]+>/', $content)) {
+                $content = nl2br($content);
+            }
+
             $sentCount = 0;
             $failedCount = 0;
+            $failedEmails = [];
+            $firstFailedReason = null;
+            // Затримка 2.5 сек — щоб вкластися в 30 сек ліміт веб-сервера (4 одержувачі ≈ 10 сек)
+            $delayMs = 2500;
 
-            foreach ($recipients as $recipient) {
-                try {
-                    Mail::queue(new EmailBroadcastNotification(
-                        $request->input('subject'),
-                        $request->input('content'),
-                        $recipient['email'],
-                        $recipient['name'] ?? ''
-                    ));
-                    $sentCount++;
-                } catch (\Exception $e) {
-                    $failedCount++;
-                    Log::error('Email broadcast failed for ' . $recipient['email'] . ': ' . $e->getMessage());
+            @set_time_limit(0);
+            foreach ($recipients as $index => $recipient) {
+                if ($index > 0) {
+                    usleep($delayMs * 1000);
+                }
+                $sent = false;
+                foreach ([0, 1] as $attempt) {
+                    try {
+                        Mail::send(new EmailBroadcastNotification(
+                            $request->input('subject'),
+                            $content,
+                            $recipient['email'],
+                            $recipient['name'] ?? ''
+                        ));
+                        $sentCount++;
+                        $sent = true;
+                        break;
+                    } catch (\Throwable $e) {
+                        Log::warning('Email broadcast attempt ' . ($attempt + 1) . ' failed for ' . $recipient['email'] . ': ' . $e->getMessage());
+                        if ($attempt === 0) {
+                            usleep(1500000); // 1.5 сек перед повтором
+                        } else {
+                            $failedCount++;
+                            $failedEmails[] = $recipient['email'];
+                            if ($firstFailedReason === null) {
+                                $firstFailedReason = $e->getMessage();
+                            }
+                            Log::error('Email broadcast failed for ' . $recipient['email'] . ': ' . $e->getMessage());
+                        }
+                    }
                 }
             }
 
@@ -94,15 +170,22 @@ class EmailBroadcastController extends Controller
                 'failed' => $failedCount,
             ]);
 
+            if ($sentCount > 0) {
+                Cache::put('email_broadcast_last_sent_at', now()->toDateTimeString(), 60 * 24 * 365);
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => $message,
                 'sent_count' => $sentCount,
                 'failed_count' => $failedCount,
+                'failed_emails' => $failedEmails,
+                'first_failed_reason' => $firstFailedReason,
+                'last_sent_at' => $sentCount > 0 ? now()->toDateTimeString() : Cache::get('email_broadcast_last_sent_at'),
             ]);
 
-        } catch (\Exception $e) {
-            Log::error('Email broadcast error: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            Log::error('Email broadcast error: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
 
             return response()->json([
                 'success' => false,
@@ -165,6 +248,20 @@ class EmailBroadcastController extends Controller
 
         return response()->json([
             'count' => $count,
+        ]);
+    }
+
+    /**
+     * Get template data for broadcast form.
+     */
+    public function getTemplate(int $id): JsonResponse
+    {
+        $template = $this->templateRepository->findOrFail($id);
+
+        return response()->json([
+            'id'      => $template->id,
+            'name'    => $template->name,
+            'content' => $this->makeContentImageUrlsAbsolute($template->content ?? ''),
         ]);
     }
 }

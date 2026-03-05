@@ -1303,6 +1303,7 @@ return [
         'orders' => [
             'created' => [
                 'greeting' => 'Дякуємо за ваше замовлення #:order_id, оформлене :created_at',
+                'greeting-customer' => 'Дякуємо за ваше замовлення, оформлене :created_at',
                 'subject'  => 'Підтвердження нового замовлення',
                 'summary'  => 'Підсумок замовлення',
                 'title'    => 'Підтвердження замовлення!',
@@ -1347,6 +1348,8 @@ return [
             'discount'                   => 'Знижка',
             'excl-tax'                   => 'Без ПДВ: ',
             'grand-total'                => 'Загальна сума',
+            'image'                      => 'Зображення',
+            'line-total'                 => 'Сума',
             'name'                       => 'Ім\'я',
             'payment'                    => 'Оплата',
             'price'                      => 'Ціна',

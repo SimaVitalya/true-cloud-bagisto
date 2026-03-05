@@ -78,6 +78,8 @@ return [
 
     'admin_url' => env('APP_ADMIN_URL', 'admin'),
 
+    'email_broadcast_curl_test_token' => env('EMAIL_BROADCAST_CURL_TEST_TOKEN', null),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone

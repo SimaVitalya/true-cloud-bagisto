@@ -1252,6 +1252,7 @@ return [
         'orders' => [
             'created' => [
                 'greeting' => 'Thanks for your Order :order_id placed on :created_at',
+                'greeting-customer' => 'Thank you for your order placed on :created_at',
                 'subject'  => 'New Order Confirmation',
                 'summary'  => 'Summary of Order',
                 'title'    => 'Order Confirmation!',
@@ -1296,6 +1297,8 @@ return [
             'discount'                   => 'Discount',
             'excl-tax'                   => 'Excl. Tax: ',
             'grand-total'                => 'Grand Total',
+            'image'                      => 'Image',
+            'line-total'                 => 'Total',
             'name'                       => 'Name',
             'payment'                    => 'Payment',
             'price'                      => 'Price',
